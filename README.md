@@ -1,29 +1,34 @@
 [![Review Assignment Due Date](https://classroom.github.com/assets/deadline-readme-button-22041afd0340ce965d47ae6ef1cefeee28c7c493a6346c4f15d667ab976d596c.svg)](https://classroom.github.com/a/e7FBMwSa)
 [![Open in Visual Studio Code](https://classroom.github.com/assets/open-in-vscode-2e0aaae1b6195c2367325f4f02e2d04e9abb55f0b24a779b69b11b9e10269abc.svg)](https://classroom.github.com/online_ide?assignment_repo_id=21914232&assignment_repo_type=AssignmentRepo)
-# Deploy FastAPI on Render
 
-Use this repo as a template to deploy a Python [FastAPI](https://fastapi.tiangolo.com) service on Render.
+# EmoGo Backend
 
-See https://render.com/docs/deploy-fastapi or follow the steps below:
+EmoGo Backend API built with FastAPI and MongoDB Atlas.
 
-## Manual Steps
+## Data Export Page
 
-1. You may use this repository directly or [create your own repository from this template](https://github.com/render-examples/fastapi/generate) if you'd like to customize the code.
-2. Create a new Web Service on Render.
-3. Specify the URL to your new repository or this repository.
-4. Render will automatically detect that you are deploying a Python service and use `pip` to download the dependencies.
-5. Specify the following as the Start Command.
+**https://emogo-backend-cheryllyeung.onrender.com/export**
 
-    ```shell
-    uvicorn main:app --host 0.0.0.0 --port $PORT
-    ```
+This page allows TAs to view and download all three types of data collected by the EmoGo frontend:
+- Vlogs
+- Sentiments
+- GPS Coordinates
 
-6. Click Create Web Service.
+## API Endpoints
 
-Or simply click:
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/` | Welcome page |
+| GET | `/export` | Data export/download page |
+| GET | `/docs` | API documentation (Swagger UI) |
+| POST | `/vlogs` | Create a new vlog entry |
+| GET | `/vlogs` | Get all vlogs |
+| POST | `/sentiments` | Create a new sentiment entry |
+| GET | `/sentiments` | Get all sentiments |
+| POST | `/gps` | Create a new GPS entry |
+| GET | `/gps` | Get all GPS coordinates |
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/render-examples/fastapi)
+## Live Demo
 
-## Thanks
-
-Thanks to [Harish](https://harishgarg.com) for the [inspiration to create a FastAPI quickstart for Render](https://twitter.com/harishkgarg/status/1435084018677010434) and for some sample code!
+- Backend URL: https://emogo-backend-cheryllyeung.onrender.com
+- API Docs: https://emogo-backend-cheryllyeung.onrender.com/docs
