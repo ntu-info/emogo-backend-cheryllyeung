@@ -204,7 +204,8 @@ async def export_page():
         <p>This page allows you to view and download all data collected by the EmoGo frontend.</p>
 
         <div class="data-section">
-            <h2>1. Vlogs</h2>
+            <h2>1. Vlogs (Video Data)</h2>
+            <p style="color: #666; font-size: 14px;">Contains video_url (local path on device) and description for each recorded vlog.</p>
             <button class="btn" onclick="loadData('vlogs')">Load Vlogs</button>
             <a class="btn btn-success" href="/vlogs" target="_blank">Download JSON</a>
             <div id="vlogs-data"><p class="loading">Click "Load Vlogs" to view data</p></div>
@@ -254,8 +255,14 @@ async def export_page():
                         keys.forEach(key => {
                             let value = item[key];
                             if (typeof value === 'object') value = JSON.stringify(value);
-                            if (value && value.length > 50) value = value.substring(0, 50) + '...';
-                            html += '<td>' + (value || '') + '</td>';
+                            // Show full video_url for vlogs
+                            if (key === 'video_url' && value) {
+                                html += '<td style="word-break: break-all; max-width: 300px;">' + value + '</td>';
+                            } else if (value && value.length > 100) {
+                                html += '<td>' + value.substring(0, 100) + '...</td>';
+                            } else {
+                                html += '<td>' + (value || '') + '</td>';
+                            }
                         });
                         html += '</tr>';
                     });
