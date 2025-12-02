@@ -1,0 +1,143 @@
+{
+  "project": "EmoGo Backend - FastAPI + MongoDB",
+  "date": "2024-12-02",
+  "developer": "Cheryl Yeung",
+  "ai_assistant": "Claude",
+  "summary": "Conversations about designing and deploying the EmoGo backend API",
+  "interactions": [
+    {
+      "id": 1,
+      "timestamp": "2024-12-02T09:00:00Z",
+      "topic": "Backend Architecture",
+      "user": "I need to build a backend for my EmoGo app. What framework should I use?",
+      "ai": "I recommend using FastAPI because it's modern, fast, and has built-in support for async operations. It also automatically generates API documentation with Swagger UI, which will be helpful for TAs to understand your endpoints.",
+      "outcome": "Decided to use FastAPI as the backend framework"
+    },
+    {
+      "id": 2,
+      "timestamp": "2024-12-02T09:15:00Z",
+      "topic": "Database Selection",
+      "user": "Should I use SQL or NoSQL database? The assignment mentions MongoDB.",
+      "ai": "MongoDB Atlas is a good choice for this project. It's a NoSQL database that stores data in JSON-like documents, which matches well with how your frontend already structures emotion data. Plus, MongoDB Atlas offers a free tier that's perfect for this assignment.",
+      "outcome": "Chose MongoDB Atlas as the database with motor[srv] driver"
+    },
+    {
+      "id": 3,
+      "timestamp": "2024-12-02T09:30:00Z",
+      "topic": "API Design",
+      "user": "What endpoints do I need for the three types of data: vlogs, sentiments, and GPS?",
+      "ai": "You should create RESTful endpoints for each data type. For each type, you need a POST endpoint to create new entries and a GET endpoint to retrieve data. I suggest: POST/GET /vlogs, POST/GET /sentiments, POST/GET /gps. This separation makes it clear and easy for TAs to access each data type.",
+      "outcome": "Designed 6 core API endpoints for CRUD operations"
+    },
+    {
+      "id": 4,
+      "timestamp": "2024-12-02T09:45:00Z",
+      "topic": "Data Export Page Design",
+      "user": "The assignment requires a data export page where TAs can see and download all data. How should I design this?",
+      "ai": "I suggest creating an HTML page at /export that shows three sections - one for each data type. Each section should have a 'Load Data' button to view data in a table format, and a 'Download JSON' button to export raw data. This gives TAs flexibility to either view data directly or download it for analysis.",
+      "outcome": "Created /export endpoint with interactive HTML page"
+    },
+    {
+      "id": 5,
+      "timestamp": "2024-12-02T10:00:00Z",
+      "topic": "Vlog Data Structure",
+      "user": "What information should I store for vlogs? The frontend records 1-second videos.",
+      "ai": "For vlogs, you should store: user_id to identify the user, video_url to store the local file path of the video, description to provide context about the emotion captured, and timestamp. Since videos are stored locally on the device, we store the path reference rather than the actual video data to keep the database lightweight.",
+      "outcome": "Defined VlogEntry schema with video_url and description fields"
+    },
+    {
+      "id": 6,
+      "timestamp": "2024-12-02T10:15:00Z",
+      "topic": "CORS Configuration",
+      "user": "My frontend can't connect to the backend. It shows CORS error.",
+      "ai": "You need to enable CORS (Cross-Origin Resource Sharing) in your FastAPI app. Add CORSMiddleware with allow_origins=['*'] to permit requests from any origin. This is necessary because your frontend and backend are on different domains.",
+      "outcome": "Added CORS middleware to allow frontend connections"
+    },
+    {
+      "id": 7,
+      "timestamp": "2024-12-02T10:30:00Z",
+      "topic": "Environment Variables",
+      "user": "Should I put the MongoDB password directly in the code?",
+      "ai": "No, you should never hardcode sensitive credentials. Use environment variables instead. In your code, use os.getenv('MONGODB_URI') to read the connection string, and set the actual value in Render's environment variables settings. This keeps your credentials secure.",
+      "outcome": "Implemented environment variable for MongoDB URI"
+    },
+    {
+      "id": 8,
+      "timestamp": "2024-12-02T10:45:00Z",
+      "topic": "Deployment Platform",
+      "user": "Where should I deploy my backend? The assignment mentions Render.",
+      "ai": "Render is a great choice. It offers a free tier for web services and automatically deploys when you push to GitHub. You just need to connect your repo, set the start command to 'uvicorn main:app --host 0.0.0.0 --port $PORT', and add your environment variables.",
+      "outcome": "Deployed to Render with automatic GitHub deployment"
+    },
+    {
+      "id": 9,
+      "timestamp": "2024-12-02T11:00:00Z",
+      "topic": "Frontend Integration",
+      "user": "How do I connect my existing frontend to this new backend?",
+      "ai": "Create an api.js utility file in your frontend that handles all backend communication. Use fetch() to send POST requests when saving emotions, and include the vlog, sentiment, and GPS data separately to their respective endpoints. This keeps your code organized and makes debugging easier.",
+      "outcome": "Created utils/api.js with syncEmotionToBackend function"
+    },
+    {
+      "id": 10,
+      "timestamp": "2024-12-02T11:15:00Z",
+      "topic": "Testing with Sample Data",
+      "user": "The database is empty. How can TAs see that my API works?",
+      "ai": "You should add some sample data to demonstrate the API functionality. Use curl commands or the Swagger UI at /docs to POST sample vlogs, sentiments, and GPS entries. This way, when TAs visit your /export page, they can immediately see data in action.",
+      "outcome": "Added sample data for all three data types"
+    }
+  ],
+  "technical_decisions": [
+    {
+      "decision": "Use FastAPI with async/await",
+      "reason": "Better performance for I/O operations and native async MongoDB support"
+    },
+    {
+      "decision": "Separate endpoints for each data type",
+      "reason": "Clear API structure, easier for TAs to understand and test"
+    },
+    {
+      "decision": "Store video_url instead of video data",
+      "reason": "Videos are large; storing paths keeps database lightweight"
+    },
+    {
+      "decision": "Create interactive HTML export page",
+      "reason": "User-friendly interface for non-technical users to view data"
+    },
+    {
+      "decision": "Use Pydantic models for validation",
+      "reason": "Automatic request validation and clear API documentation"
+    }
+  ],
+  "challenges_and_solutions": [
+    {
+      "challenge": "Frontend was only saving data locally, not syncing to backend",
+      "solution": "Added api.js utility to sync data to backend on each save"
+    },
+    {
+      "challenge": "Export page only showed 'hasVideo: true' instead of actual video path",
+      "solution": "Modified frontend to include full videoPath in export data"
+    },
+    {
+      "challenge": "MongoDB connection failed on Render",
+      "solution": "Added 0.0.0.0/0 to MongoDB Atlas network access whitelist"
+    }
+  ],
+  "endpoints_created": [
+    "GET / - Welcome page",
+    "GET /export - Data export HTML page",
+    "GET /docs - Swagger API documentation",
+    "POST /vlogs - Create vlog entry",
+    "GET /vlogs - List all vlogs",
+    "POST /sentiments - Create sentiment entry",
+    "GET /sentiments - List all sentiments",
+    "POST /gps - Create GPS entry",
+    "GET /gps - List all GPS coordinates"
+  ],
+  "deployment": {
+    "platform": "Render",
+    "database": "MongoDB Atlas",
+    "backend_url": "https://emogo-backend-cheryllyeung.onrender.com",
+    "export_page": "https://emogo-backend-cheryllyeung.onrender.com/export",
+    "api_docs": "https://emogo-backend-cheryllyeung.onrender.com/docs"
+  }
+}
