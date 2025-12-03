@@ -1,10 +1,11 @@
 import os
+import base64
 from typing import Optional, List
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
@@ -93,6 +94,42 @@ async def get_vlogs(user_id: Optional[str] = None, limit: int = 100):
         query["user_id"] = user_id
     vlogs = await app.mongodb["vlogs"].find(query).to_list(limit)
     return [serialize_doc(v) for v in vlogs]
+
+
+@app.get("/vlogs/{vlog_id}/download")
+async def download_vlog_video(vlog_id: str):
+    """
+    Download a video file by vlog ID.
+    Returns the video as a downloadable file if video_data (base64) exists.
+    """
+    try:
+        vlog = await app.mongodb["vlogs"].find_one({"_id": ObjectId(vlog_id)})
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid vlog ID format")
+
+    if not vlog:
+        raise HTTPException(status_code=404, detail="Vlog not found")
+
+    video_data = vlog.get("video_data")
+    if not video_data:
+        raise HTTPException(status_code=404, detail="No video data available for this vlog")
+
+    try:
+        # Decode base64 video data
+        video_bytes = base64.b64decode(video_data)
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to decode video data")
+
+    # Generate filename
+    filename = f"vlog_{vlog_id}.mp4"
+
+    return Response(
+        content=video_bytes,
+        media_type="video/mp4",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}"
+        }
+    )
 
 
 # ==================== SENTIMENT ENDPOINTS ====================
@@ -205,8 +242,8 @@ async def export_page():
 
         <div class="data-section">
             <h2>1. Vlogs (Video Data)</h2>
-            <p style="color: #666; font-size: 14px;">Contains video_url (local path on device) and description for each recorded vlog.</p>
-            <button class="btn" onclick="loadData('vlogs')">Load Vlogs</button>
+            <p style="color: #666; font-size: 14px;">Contains video data and description for each recorded vlog. Click "Download Video" to download individual videos.</p>
+            <button class="btn" onclick="loadVlogs()">Load Vlogs</button>
             <a class="btn btn-success" href="/vlogs" target="_blank">Download JSON</a>
             <div id="vlogs-data"><p class="loading">Click "Load Vlogs" to view data</p></div>
         </div>
@@ -231,6 +268,47 @@ async def export_page():
         </div>
 
         <script>
+            // Load vlogs with download button
+            async function loadVlogs() {
+                const container = document.getElementById('vlogs-data');
+                container.innerHTML = '<p class="loading">Loading...</p>';
+
+                try {
+                    const response = await fetch('/vlogs');
+                    const data = await response.json();
+
+                    if (data.length === 0) {
+                        container.innerHTML = '<p>No vlog data available</p>';
+                        return;
+                    }
+
+                    // Create table with download column
+                    let html = '<table><tr><th>ID</th><th>User ID</th><th>Description</th><th>Timestamp</th><th>Video</th></tr>';
+
+                    data.forEach(item => {
+                        html += '<tr>';
+                        html += '<td>' + (item._id || '') + '</td>';
+                        html += '<td>' + (item.user_id || '') + '</td>';
+                        html += '<td>' + (item.description || '') + '</td>';
+                        html += '<td>' + (item.timestamp || '') + '</td>';
+
+                        // Add download button if video_data exists
+                        if (item.video_data) {
+                            html += '<td><a class="btn btn-success" href="/vlogs/' + item._id + '/download" style="padding: 5px 10px; font-size: 12px;">Download Video</a></td>';
+                        } else {
+                            html += '<td style="color: #999;">No video</td>';
+                        }
+                        html += '</tr>';
+                    });
+                    html += '</table>';
+
+                    container.innerHTML = html;
+                } catch (error) {
+                    container.innerHTML = '<p style="color: red;">Error loading data: ' + error.message + '</p>';
+                }
+            }
+
+            // Generic data loader for sentiments and gps
             async function loadData(type) {
                 const container = document.getElementById(type + '-data');
                 container.innerHTML = '<p class="loading">Loading...</p>';
@@ -255,10 +333,7 @@ async def export_page():
                         keys.forEach(key => {
                             let value = item[key];
                             if (typeof value === 'object') value = JSON.stringify(value);
-                            // Show full video_url for vlogs
-                            if (key === 'video_url' && value) {
-                                html += '<td style="word-break: break-all; max-width: 300px;">' + value + '</td>';
-                            } else if (value && value.length > 100) {
+                            if (value && value.length > 100) {
                                 html += '<td>' + value.substring(0, 100) + '...</td>';
                             } else {
                                 html += '<td>' + (value || '') + '</td>';
@@ -297,3 +372,99 @@ async def export_sentiments():
 async def export_gps():
     gps_data = await app.mongodb["gps"].find().to_list(1000)
     return JSONResponse(content=[serialize_doc(g) for g in gps_data])
+
+
+# ==================== SAMPLE DATA ENDPOINT ====================
+@app.post("/seed-sample-data")
+async def seed_sample_data():
+    """
+    Create sample/fake data for testing purposes.
+    This endpoint populates the database with sample vlogs, sentiments, and GPS data.
+    """
+    # Sample base64 encoded small video (a minimal valid MP4 file)
+    # This is a tiny placeholder video for demonstration
+    sample_video_base64 = "AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAAhtZGF0AAAA"
+
+    sample_vlogs = [
+        {
+            "user_id": "user_001",
+            "video_data": sample_video_base64,
+            "description": "Morning walk in the park - feeling refreshed!",
+            "timestamp": datetime(2024, 12, 1, 8, 30, 0)
+        },
+        {
+            "user_id": "user_001",
+            "video_data": sample_video_base64,
+            "description": "Lunch with friends at the cafe",
+            "timestamp": datetime(2024, 12, 1, 12, 15, 0)
+        },
+        {
+            "user_id": "user_002",
+            "video_data": sample_video_base64,
+            "description": "Studying at the library",
+            "timestamp": datetime(2024, 12, 2, 14, 0, 0)
+        }
+    ]
+
+    sample_sentiments = [
+        {
+            "user_id": "user_001",
+            "sentiment": "happy",
+            "score": 0.85,
+            "timestamp": datetime(2024, 12, 1, 8, 35, 0)
+        },
+        {
+            "user_id": "user_001",
+            "sentiment": "relaxed",
+            "score": 0.72,
+            "timestamp": datetime(2024, 12, 1, 12, 20, 0)
+        },
+        {
+            "user_id": "user_002",
+            "sentiment": "focused",
+            "score": 0.90,
+            "timestamp": datetime(2024, 12, 2, 14, 5, 0)
+        },
+        {
+            "user_id": "user_002",
+            "sentiment": "tired",
+            "score": 0.65,
+            "timestamp": datetime(2024, 12, 2, 18, 0, 0)
+        }
+    ]
+
+    sample_gps = [
+        {
+            "user_id": "user_001",
+            "latitude": 25.0330,
+            "longitude": 121.5654,
+            "accuracy": 10.5,
+            "timestamp": datetime(2024, 12, 1, 8, 30, 0)
+        },
+        {
+            "user_id": "user_001",
+            "latitude": 25.0418,
+            "longitude": 121.5328,
+            "accuracy": 8.2,
+            "timestamp": datetime(2024, 12, 1, 12, 15, 0)
+        },
+        {
+            "user_id": "user_002",
+            "latitude": 25.0173,
+            "longitude": 121.5398,
+            "accuracy": 5.0,
+            "timestamp": datetime(2024, 12, 2, 14, 0, 0)
+        }
+    ]
+
+    # Insert sample data
+    vlog_result = await app.mongodb["vlogs"].insert_many(sample_vlogs)
+    sentiment_result = await app.mongodb["sentiments"].insert_many(sample_sentiments)
+    gps_result = await app.mongodb["gps"].insert_many(sample_gps)
+
+    return {
+        "message": "Sample data created successfully",
+        "vlogs_created": len(vlog_result.inserted_ids),
+        "sentiments_created": len(sentiment_result.inserted_ids),
+        "gps_created": len(gps_result.inserted_ids)
+    }
